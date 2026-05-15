@@ -1,0 +1,56 @@
+name: 编译iproxy单文件exe
+on:
+  workflow_dispatch: # 允许手动点击触发
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: 检出libusbmuxd代码（iproxy就在这个项目里）
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: 安装MSVC 64位编译器
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: 安装CMake编译工具
+        uses: lukka/get-cmake@latest
+
+      - name: 编译所有依赖和最终的iproxy.exe
+        run: |
+          # 创建统一的工作目录，所有编译都在这里进行
+          mkdir build
+          cd build
+
+          # 1. 编译第一个依赖：libplist 2.6.0（稳定版）
+          git clone --depth 1 --branch 2.6.0 https://github.com/libimobiledevice/libplist.git
+          cd libplist
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+          cmake --build . --config Release
+          cmake --install . --prefix ../../install
+          cd ../..
+
+          # 2. 编译第二个依赖：libimobiledevice-glue 1.2.0（必须的新增依赖）
+          git clone --depth 1 --branch 1.2.0 https://github.com/libimobiledevice/libimobiledevice-glue.git
+          cd libimobiledevice-glue
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_PREFIX_PATH=../../install
+          cmake --build . --config Release
+          cmake --install . --prefix ../../install
+          cd ../..
+
+          # 3. 编译主项目libusbmuxd和iproxy.exe（这才是我们要的）
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DCMAKE_PREFIX_PATH=./install
+          cmake --build . --config Release
+
+      - name: 上传纯绿色单文件iproxy.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: iproxy-portable.exe
+          path: build/Release/iproxy.exe
