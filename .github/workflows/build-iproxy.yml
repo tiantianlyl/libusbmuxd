@@ -24,6 +24,7 @@ jobs:
             mingw-w64-x86_64-autotools
             mingw-w64-x86_64-pkg-config
             mingw-w64-x86_64-libplist
+            mingw-w64-x86_64-libimobiledevice-glue
 
       - name: 构建libusbmuxd
         run: |
