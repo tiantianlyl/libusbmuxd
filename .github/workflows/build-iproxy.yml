@@ -1,4 +1,4 @@
-name: 编译iproxy单文件exe（正确版）
+name: 编译iproxy单文件exe（静态版）
 on:
   workflow_dispatch:
 
@@ -19,17 +19,16 @@ jobs:
           update: true
           install: >-
             base-devel
-            git
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-autotools
             mingw-w64-x86_64-pkg-config
             mingw-w64-x86_64-libplist
             mingw-w64-x86_64-libimobiledevice-glue
 
-      - name: 构建libusbmuxd
+      - name: 构建libusbmuxd（静态链接）
         run: |
           ./autogen.sh
-          ./configure --host=x86_64-w64-mingw32
+          ./configure --host=x86_64-w64-mingw32 LDFLAGS="-static"
           make -j4
 
       - name: 上传成品iproxy.exe
