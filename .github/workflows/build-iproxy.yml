@@ -1,0 +1,38 @@
+name: 编译iproxy单文件exe（正确版）
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: 拉取仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置MSYS2构建环境
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          update: true
+          install: >-
+            base-devel
+            git
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-autotools
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-libplist
+
+      - name: 构建libusbmuxd
+        run: |
+          ./autogen.sh
+          ./configure --host=x86_64-w64-mingw32
+          make -j4
+
+      - name: 上传成品iproxy.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: iproxy
+          path: tools/.libs/iproxy.exe
